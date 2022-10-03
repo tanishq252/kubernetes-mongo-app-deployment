@@ -1,0 +1,63 @@
+#this is a config file with deployment an service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    app: webapp
+spec:
+  replicas: 1
+  selector:
+    # match all the pods with the below matchLabels
+    matchLabels:
+      app: webapp
+  # blue print of the pods is template
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+      # creating a pod
+      # search webapp on docker hub and fill further details
+      - name: webapp
+        # here a different image of real web app is needed
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config
+              key: mongo-url
+
+--- # this allows us to have multiple yaml configs within 1 file
+
+# service configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  # default type is "ClusterIP" which is an internal service
+  # NodePort is an external service 
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: webapp
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      # external service can be represented as : <NodeIP>:<NodePort>
+      nodePort: 30100
